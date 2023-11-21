@@ -1,0 +1,284 @@
+Why no-sql?? 
+-- volumes of data -- big data 
+-- types(variety) of data; structured, semi structured , unstructured
+-- no schema; schemaless -- no fixed structure -- no 2 rows of the same table need to have the same structure
+-- low cost ; 
+-- lower resource consumption
+-- open source
+-- latency -- time required to fetch the data -- includes the network time -- acheive low latency 
+	-- dynamodb -- single digit millisecond latency for million of operations
+-- faster speed
+-- faster performance
+
+-- Replication
+-- Scalability
+-- Availability
+-- Partition / Sharding of data 
+	-- Break up the data and store it in different server
+
+	Why?
+		-- Huge volumes of data 
+		-- faster reads and writes
+	Advantages -- 
+		--Better handling of data 
+			-- data storage is better organised
+			-- data retreival is also faster
+		-- lower latency
+		-- faster
+		-- 
+
+-- Security -- Authentication and authorisation
+-- back up and restore 
+-- Import and export data 
+
+-- Cloud databases
+-- DBaaS
+
+Cloud platform -- AWS, Azure, GCP
+
+Cloud -- provide services; no local setup required, no maintanence required from client; high availability; payable services; pay as u go; 
+
+DBaas -- data base as a service ; data base is provide by cloud providers
+
+-- Any local setup required
+-- No need for maintanence
+
+DBA responsibilities :
+	-- Set up/Configure the deployment
+	-- Manage security
+	-- Back up/Restore; Import/Export
+	-- Monitor the performance 
+	-- Maintanence of deployment
+	-- Replication and scalability	
+	-- Versioning of servers/ patching/ upgradation/migration
+	-- Encryption of data
+
+
+Dynamodb -- data base provided by AWS
+
+-- Versioning of servers/ patching/ upgradation/  -- Serverless 
+-- Replication and scalability -- Inbuilt ; auto scalability ; provisioned 
+-- Manage security -- IAM authentication and roles ; use AWS security
+-- Set up/Configure the deployment 
+	-- Based on regions in AWS
+	-- Partition is done by default (Abstracted from the client )
+-- Back up/Restore; Import/Export -- AWS tools 
+-- Monitor the performance -- AWS CloudWatch -- alerts, triggers, streams
+-- Maintanence of deployment
+	-- Replication is also internally maintained
+-- Encryption of data -- By default
+	-- Item level encryption is also possible
+
+	
+	
+RDBMS: Rigid schema 
+create table employee
+(
+empId varchar2(30),
+empName varchar2(30),
+childrenDetail1 varchar2(30),
+childrenDetail2 varchar2(30),
+childrenDetail3 varchar2(30)
+)
+
+
+Schema
+	-- Number of columns
+	-- Data type of columns
+	-- Constraints for each column(Table level constraints)
+
+
+
+World cup match
+
+
+
+day 1:Netherlands vs Bangladesh -- 50 lakhs 
+
+day 2: India vs pakistan -- 2 crores
+
+day 3: Finals India vs Pakistan -- 6 crores
+
+Hotstar 
+
+Scenario 1:
+	1 server
+	day 1: 1 tb RAM 10 tb memory
+	day 2: 10 tb Ram ; 100 tb memory
+	day 3 : 100 tb RAM; 1000 tb memory
+	Vertical scaling -- Increasing the capacity of single server
+	Advantages:
+		-- No synchronisation needed 
+		-- Full consistency
+	Disadvantages:
+		-- Downtime required for scale up/down; difficult to manage
+		-- Single point of failure 
+		-- Costlier in longer run 
+		-- Not easier to scale down
+		-- Hardware restriction 
+Scenario 2: 
+	10 servers
+	day 1: 10 servers (commodity hardwares)
+	day 2: 100 servers
+	day 3 : 1000 servers
+	Horizontal scaling -- Increase/Decrease the number of servers 
+	Advantages:
+		-- No down time required for scale up/down
+		-- Load balancing is possible
+		-- High Availability
+		-- More number of read requests can be handled 
+		-- Easy to setup and configure
+	Disadvantages:
+		-- Synchronisation of data has to be managed 
+		-- Full consistency or eventual consistent 
+
+
+RDBMS -- vertical scaling
+	-- 5-7 years -- horizontal scaling is also possible
+			-- difficult to setup/ maintain
+
+no sql
+	-- horizontal scaling
+		-- High availability
+		-- Replication 		
+			-- Higher memory
+			-- More cost
+
+
+
+
+Partition of data: countryName -- partition the data and store the related data together 
+India -- All the rows with India as country name will be stored together
+
+
+USA
+
+Australia
+
+Europe
+
+select * from sample where countryname="India"
+
+CAP theorem
+Types of nosql db
+-- key value
+-- document based
+-- graph based
+-- column based
+
+Key value based -- Redis, Couchbase 
+	key -- primary key; unique identifier
+	value -- record of data 
+Advantages :
+	-- Entire data can be fetched at once -- No joins required
+	-- Joins -- costly process -- Save cost/ memory
+	-- Better performance 
+
+Shopping cart app:
+	-- All product information
+Customer id--
+	-- My orders
+	-- My Address/profile
+	-- My Payment details
+Queries : Based on products or customer id
+
+Best way of storing 	-- key value based database
+key -- customer id
+value -- data (profile, payment, orders)
+
+101: {
+	profile:{name:"sara",address:"chennai"}, 
+	payment :{card :{number :5678}}, 
+	orders:[
+		{orderId:"O567",products:[{productId:"apple",qaunatity:2}]}]
+	}
+
+102: {
+	profile:{name:"tara",address:"chennai"}, 
+	payment :{card :{number :6789}}, 
+	
+	}
+
+	
+103: {
+	profile:{name:"lara",address:"chennai"}, 
+	payment :{card :{number :5688}}, 
+	orders:[
+		{orderId:"O568",products:[{productId:"apple",qaunatity:2},
+		{orderId:"O569",products:[{productId:"samasung",qaunatity:2},
+		{orderId:"O560",products:[{productId:"nokia",qaunatity:2},
+		{orderId:"O561",products:[{productId:"one plus",qaunatity:2}
+	]}]
+	}
+	
+
+Dynamodb -- schemaless
+
+data types : string, number,binary, boolean, null, number set,binary set, string set, list and map
+
+Table
+	-- Collection of Items
+
+Item 
+	-- Record/ row of data
+	-- mandatory 
+		-- Partition key is mandatory
+			-- Data type of partition key is same for all items
+		-- Sort key is mandatory
+			-- Data type of sort key is same for all items
+	-- Optional other attributes
+	-- Should have a primary key
+		-- Combination of partition key and sort key
+			-- Combination should be unique
+			-- Individual values can be repeat
+
+
+
+Books table 
+	Fields
+		Author bookName, cost
+
+		select * from books where author="Paul Coelho"
+		select * from books where bookName="Alchemist"
+		select * from books where cost > 100
+		select * from books 
+
+Dynamodb:
+Books table 
+	Fields
+		Author bookName, cost
+
+		select * from books where author="Paul Coelho"
+		select * from books where bookName="Alchemist"
+		select * from books where cost > 100
+		select * from books 
+
+
+Scan -- Return all records ; Optional filter is possible
+	-- Case sensitive matching
+		
+		select * from books where author="Paul Coelho"
+		select * from books where bookName="Alchemist"
+		select * from books where cost > 100
+		select * from books 
+
+Query -- Filtering based on partition key
+	-- mandatory -- partition key search
+
+	Queries which will not work :
+		select * from books where bookName="Alchemist"
+		select * from books where cost > 100
+		select * from books 
+		select * from books where author="Paul Coelho" or cost > 123
+
+	Queries which will work:
+		select * from books where author="Paul Coelho"
+		select * from books where author="Paul Coelho" and bookName="Alchemist"
+		select * from books where author="Paul Coelho" and cost > 123
+
+
+
+select * from books where author="Paul Coelho" and (cost > 123 or bookName="Alchemist");// No
+select * from books where author="Paul Coelho" and (cost > 123 and bookName="Alchemist");// No
+
+

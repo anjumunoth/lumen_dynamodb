@@ -1,0 +1,293 @@
+Types of No sql
+1. Key value -- Redis, Cassandra
+2. Document based -- mongodb, cosmosdb
+3. Graph based -- Neo4j
+4. Column based -- Cassandra
+
+Document based db--
+	Store each record in a single document
+  Mongodb: json object
+  	employee table/collection
+    	{empId:101,empName:"sara", salary:56789, _id :ObjectId("567abcd45")}
+  No joins
+  Store related data together as part of a single document
+  
+Graph based db:
+Nodes and relationships
+Nodes/Edges -- Entities and their attributes
+Relationships -- Type of relationship and data for the relationship
+
+Column based
+cassandra
+
+Primary key -- Combination of partition key and sort key
+data is going to be partitioned based on partition key
+Data having same partition key will be stored together in sorted order of sort key 
+
+CountryName -- Partition key
+StateName -- Sort Key
+Population
+India Karnataka 12345
+India TamilNadu 56789
+India Maharashtra 591098
+
+Australia
+Australia
+Australia
+
+USA
+USA 
+
+Advantages: 
+	-- Search easily and faster based on partition key
+	-- Data is stored based on partition key -- Easily scalable
+  -- Less number of indexes required 
+  -- Fetch data -- faster -- fetch the data only from that particular partition 
+  
+
+Cloud data bases :
+	AWS -- dynamodb
+  Azure -- Cosmosdb
+  
+Dynamodb:
+	-- Useful for storing key value based or document based data
+  -- AWS is provider
+  	-- 99.99% Availability SLA guarantee
+    --single digit millisecond throughput for millions of operations
+    
+  -- Consistency
+  	** Full/strong consistency
+    ** Eventual consistency
+    ** Transactional consistency
+    
+  -- Supports transaction:
+  		-- ACID properties
+      	-- All operations or none 
+  			-- Atomicity, Consistency, Isolation and Durability
+  
+ -- Streams 
+ 	-- Records which are created and added to stream whenever there are the modifications (write) to the table
+  -- Created in order of writes
+  -- Stored for 24 hours
+  -- Read from the streams and do the appropriate actions based on stream records
+	
+  -- Triggers
+  
+  -- Indexes
+  	-- Partition key and sort key
+  	Local Secondary index -- upto 5 indexes per table; created during table creation 
+    	-- Same partition key as base table but different sort key from base table
+    Global secondary index -- upto 20 indexes  per table
+    	-- Different partition and sort key from base table
+    Why indexes 
+    	-- Fasten the queries
+      -- Query based on partition key
+      -- Query the index and not the table
+
+
+Query Filter based only on cost attribute -- NO (Author is my partition key)
+Create a global secondary index with partition key as cost
+
+Query on the index to satisfy the requirement
+
+Primary key -- combination of partition key and sort key
+
+Partition key -- Sent to a hashing algorithm. Based on hashed values, the data will be stored in corresponding partition
+Size/Number of partitions is abstracted from user
+Number of partitions depend upon the provisioned throughput(RCU and WCU)
+
+Primary key : Uniquely identifying the items
+Primary key cannot be changed once the table is created
+Primary key should be based on incoming queries
+Selection of partition key:
+
+data modelling in RDBMS
+-- Model the tables, relationship the tables, create the tables; write the queries -- Ad hoc queries
+
+data modelling in dynamodb
+-- volume of data, availability, scalability, durability, queries
+-- Related data together
+	-- Customer 
+	Profile info, payment info, order(s) info -- store it as a single item
+  -- Access will be faster
+  -- No joins required
+  -- One fetch will get all information
+  
+-- Data storage
+	-- Hot partitions should be avoided
+  	-- Lot of reads/ writes are coming for the same partitions
+    -- Evenly distribute the data
+    -- By using the hashing algorithm
+    -- High cardinality of partition key
+
+-- Type of queries coming to the table 
+Books table -- 3 attribues : Author, book name and cost
+partition key : Author
+What are the reasons for making author as partition key:
+-- Single author might have return multiple books (One to many relationship)
+-- Number of authors is possible(High cardinality) -- Even distribution of data
+-- My App has a number of queries(majority) based on author 
+
+
+A book can be written together by multiple authors
+Lets say partition key as cost
+-- High cardinality
+-- majority of queries are based on author
+-- Scan is only possible for queries on author
+-- Query is not only possible for queries on author
+-- Index can be created on author -- Index is also going to be an additional cost;(storage, maintanence, retrieval)
+-- Query is always requiring the partition key
+-- This will be a costlier affair
+
+Example
+Books -- Author, book name and cost
+Queries : 
+Based on author -- 20%
+Based on book name -- 20%
+Based on cost -- 60%
+
+Cost can be partition key
+Primary key : Cant be simple (cost can be repetitive)
+Has to be composite ; Cost -- Partition key,Book Name-- Sort key
+
+Secondary index on author -- 20% will also become faster
+
+Dynamodb 
+ -- Paid
+ -- As u go-- As much as used
+ -- Optimise cost; Enhanced performance 
+ -- Cost calculated 
+ 	-- Storage(data and indexes), retrieval, security, replication, monitoring
+  
+  major cost -- reads/writes
+  
+  RCU -- Read capacity units
+  WCU -- Write capacity units
+  
+  Table
+  	-- Capacity modes 
+    	-- Provisioned -- Defining the capacity
+      -- On Demand -- Based on traffic, the capacity will be adjusted
+      
+      
+  
+  
+
+Provisioned capacity :
+	-- Auto scaling can be on/off
+Default : 5RCU, 5WCU
+Configure : RCU and WCU
+
+Read operation: Read some data ; size associated; hom many reads per second
+Read operation upto size 4kb/sec with full consistency : 1 RCU
+Read operation upto size 4kb/sec with eventual  consistency : .5RCU
+Read operation upto size 4kb/sec with transactional consistency : 2RCU
+
+
+Read operation of size 7kb with eventual consistency -- Spent 1 Rcu (.5 * 2 )
+
+Provision RCU 5RCU : 
+	read operations of full consistency --  4kb * 5 = 20kb of data
+  read operations of eventual consistency --  4kb * 10 = 40kb of data
+  
+  
+Item size : 3kb
+Number of reads/per sec: 10
+Read operation upto size 4kb/sec with eventual  consistency : .5RCU
+
+
+Number of reads/sec : 10 items -- 10 items -- .5 RCU for each eventual consistency -- 5RCU will be enough
+Number of reads/sec : 10 items -- 10 items -- 1 RCU for each strong consistency -- 10RCU will be enough
+
+Avrage item size : 15 kb
+Item read/sec : 75
+Strong Consistency : Provisioned RCU : 300RCU : 4(upto 16kb)*75*1RCU
+
+Write operation upto size 1kb/sec with standard consistency : 1 WCU
+Write operation upto size 1kb/sec with transactional consistency : 2WCU
+
+Examples:
+Write 10 items , avearge item size - 5kb; standard consinstency -- Number of wcu to be provisioned: 50WCU
+
+
+Throughput:
+	-- Factors to be considered
+  	-- Reads and writes happening/sec -- Dynamic 
+    -- Size of data -- Dynamic 
+    -- Consistency -- Dynamic 
+  Number of RCU
+  Number of WCU
+  
+  Throughput 
+  -- Switch between the 2 is possible without any downtime; no performance degradation
+  	-- Provisoned
+    	Require -- 100 RCU; Provision :120 RCU
+    -- On demand
+  		based on traffic, it will auto adjust automatically
+      
+When to go for on demand:
+	-- Traffic is unpredictable
+  -- When something has a chance of going viral
+  -- Huge spikes in traffic 
+  
+  
+When to go for Provisioned:
+Sale is going to come: More traffic ; 
+-- Expected increase/decrease in behaviour
+-- Predictable read and writes
+
+
+Initial 500RCU
+30 days for diwali : Provisioning 1000RCU
+10 days for diwali : Provisioning 2000RCU
+1 day for diwali : : Provisioning 3000RCU
+
+Provisioned capacity model
+	-- Auto scaling : off/ on
+  
+Provisioned capacity and auto scaling off:
+	Number of RCU: 100; Number or WCU : 100
+  Exact RCU and WCU's will be provisioned
+  Cost = Fixed ; irrespective of usage
+  --Setting a Maximum upper limit on number of operations/sec
+  
+ Target utilisation : Usual values:  20% to 90% 
+Provisioned capacity and auto scaling "on":
+	--Based on trffice, the RCU will be provisioned(increased or decreased ) so that its near the target utilisation
+  -- Provisioning will change dynamically implicitly(managed by aws)
+	 RCU: Minimum: 100, Maximum: 200, Target utilisation: 70%;
+   Initial Setup : RCU provisioned : 
+   Cost : variable ; Based on traffic and actual provisioning
+   
+   Target utilisation : Percentage : actual consumtion/provisioned
+   Maintain close to 70% utilisation:
+  Example 1:
+   Actual Incoming read traffic : 145 RCU
+   Provisioned : xRCU:
+   145/x=70%; Therefore x= 207; But xcan be max only 200 ; Provision : 200RCU
+   
+   Example 2:
+   Actual Incoming read traffic : 85 RCU 
+   Provisioned RCU  :85/x=70%; Therefore x=  121 ; Provisioned RCU :121 RCU
+   
+   WCU with auto scaling on:
+   Min value; Max value; Target utilisation
+  --Setting a Maximum upper limit on number of operations/sec
+  
+  
+On demand capacity :
+	-- No min and max values and target utilisation for RCU and WCU
+  -- Unpredictable traffic
+	Discuss cost : 
+  -- Cost based on actual consumption
+  How does it handle the spikes in traffic :
+  	Initial setup -- allocate 4000rcu and 1000 wcu
+    Traffic flows in 
+    traffic spike up : Increase the capacity when the actual consumption is more than the previous peak -- allocate more RCU
+    
+    
+    Products table -- 3 items
+    Default -- eventual consitency :
+    Table Scan Actual consumption -- 1.5 RCU
+    Table scan --
+  
