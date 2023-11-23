@@ -1,0 +1,413 @@
+
+https://github.com/anjumunoth/lumen_dynamodb.git
+
+Table
+	-- Primary key
+  	-- Combination of partition key and sort key
+  -- Capacity
+  	-- On demand 
+    	-- Cost is calculated on basis of actual consumption
+    -- Provisioned
+    	-- Auto scaling off
+      -- Auto scaling on
+  -- Table class
+  	-- Standard Table
+    -- Infrequently accessed table
+    	-- Used for storing infrequently accessed data
+      -- major cost is storage cost
+      -- Use cases
+      	-- Storing historical data
+				-- Any infrequently accessed data
+  -- Index 
+  	-- Read query from an index is possible
+    -- For an index, we can project the fields/attributes
+    -- Index Entry-- value and pointer to that record, and projected field(s)
+    -- Projected from an index :
+    	--Mandatory -- indexed field
+      	** Indexed field and primary key
+        ** Indexed field and entire record
+    		** Indexed field and primary key and some key attributes as well
+    -- Index -- Have to be careful about the projection
+  	-- LSI
+    	-- Local Secondary Index
+      	-- Same Partition key as base table
+        -- Sort key can be different from base table
+        -- Can be only created during table creation
+        -- max upto 5 lSI per table
+        -- Shares the RCU and WCU of the base table 
+        
+    -- GSI
+    	-- Different partition key and sort key
+      -- Create it during table creation and on existing table
+      -- max upto 20 gsi indexes per table
+      -- Incur Additional cost
+      -- Provison seperate RCU and WCU for index
+      
+      
+select * from employee;// Selecting all columns
+select empId, empName from employee;// Projecting some of the columns
+
+
+create index idx_empId on employee(empId);// create an index on empId field
+select * from idx_empId; // Not allowed
+
+Index entries : empId value and pointer to that record
+
+Dynamodb :
+Indexes
+
+Books
+	Provisioned , Auto scaling off, RCU -- 1000Rcu, 500 WCU 
+Primary key : Author, bookName 
+LSI : Author ,Price
+GSI : Author , Price
+Average item size: 15kb
+Read from a table and  LSI : 250 read operation per sec
+
+Can we change the capacity mode for an existing table: yes but only twice within 24 hours
+
+data types : Number, String,Binary, Number Set, String Set, Binary set, List , map
+Number set : Collection of unique number values, insertion order is not preserved; Should be enclosed within curly braces
+String set : Collection of unique string values, insertion order is not preserved; Should be enclosed within curly braces
+Binary set : Collection of unique binary values, insertion order is not preserved; Should be enclosed within curly braces
+List : Similar to array : Repetitive values, values of different data type, insertion order is maintained, Use square brackets; For each element have to add the data type
+Map : Json object, dictionary; key value pairs
+
+Json view
+Insert a new book:
+Author: Paul Coelho
+BookName: Alchemist
+Publishers : String Set 
+Printed : boolean
+Places of release : List
+
+
+The following is a complete list of DynamoDB data type descriptors:
+
+S – String
+
+N – Number
+
+B – Binary
+
+BOOL – Boolean
+
+NULL – Null
+
+M – Map
+
+L – List
+
+SS – String Set
+
+NS – Number Set
+
+BS – Binary Set
+
+
+// Alias 
+(1)
+{
+  "Author": {
+    "S": "Paul Coelho"
+  },
+  "BookName": {
+    "S": "Alchemist"
+  },
+  "Publshers": { "SS":["Suraj Expo","Shreyas&Co","PBR Enterprises"]  },
+   "Printed": { "BOOL":true  },
+   "PlacesReleased": { "L":[{"S":"Mumbai"},{"S":"Kolkatta"},{"S":"Delhi"},{"S":"Bengaluru"}]}
+}
+
+(2)
+{
+  "Author": {
+    "S": "Paul Coelho"
+  },
+  "BookName": {
+    "S": "Straight to the Destiny"
+  },
+  "Publshers": { "SS":["Maharaj and Co","Sunrise Enterprises","Perimates Publishers"]  },
+   "Printed": {"BOOL":true},
+   "PlacesReleased": { "L":[{"S":"Cochin"},{"S":"Pune"},{"S":"Mangalore"},{"S":"Varanasi"}]}
+}
+
+
+
+-- Altamash
+{
+  "Author": {
+    "S": "Robert Kioski"
+  },
+  "BookName": {
+    "S": "Rich Dad Poor Dad"
+  },
+  "Languages": {
+    "SS": ["English", "Espanol", "French","Hindi"]
+  },
+  "Price": {
+    "N": "799"
+  },
+  "Available": {
+    "BOOL": true
+  }
+}
+
+//Koushik
+{
+  "Author": {
+    "S": "Chetan"
+  },
+  "BookName": {
+    "S": "College"
+  },
+  "Publisher": {
+    "SS": [
+      "Microsoft",
+      "Apex",
+      "Hindu"
+    ]
+  },
+  "Printed": {
+    "BOOL": true
+  }
+}
+//satya
+
+{
+  "author": {
+    "S": "Paul Coelh"
+  },
+  "bookName": {
+    "S": "Alchemist"
+  },
+  "Price": {
+    "N": "100"
+  },
+  "Publishers ": {
+    "L": [
+      {
+        "S": "lumen"
+      },
+      {
+        "S": "ctl"
+      }
+    ]
+  },
+  "Released": {
+    "SS": [
+      "hyderabad",
+      "kerala",
+      "delhi"
+    ]
+  }
+}
+
+
+
+
+//khaleem
+{
+  "author": {
+    "S": "Coelho"
+  },
+  "bookName": {
+    "S": "Alchemist2"
+	
+   },
+   
+  "Publshers": { "SS":["Suraj Expo","Shreyas&Co","PBR Enterprises"] },
+   
+  "PlacesReleased": { "L":[{"S":"solarpur"},{"S":"Kolar"},{"S":"Delhi"},{"S":"Belgium"}]} 
+  }
+
+//Koushik 
+{
+  "Author": {
+    "S": "Paul Coelho"
+  },
+  "BookName": {
+    "S": "Alchemist"
+  },
+  "Publishers": {"L":[{"S":"MIcrosoft"},{"S":"Apex"}]},
+  "price":{"N":"1000"},
+  "Released":{"SS":["Guntur","Bangalore","Hyd"]}
+}
+//
+
+
+// Mahalakshmi 
+{
+  "Author": {"S": "Joe"},
+  "BookName": {"S": "SQL"},
+  "Printed": { "BOOL": true},
+  "Publisher": {"SS": ["AA","BB","CC"]},
+  "Released": {"L": [{"S": "Chennai"},{"S": "Delhi"},{"S": "Bangalore"}]}
+}
+//
+
+//Bharathi
+{
+  "Author": {
+    "S": "Paul Coelh"
+  },
+  "Bookname": {
+    "S": " Alchemist"
+  },
+  
+  "Publishers" : {"L":[{"S":PENGUINE"},{"S":"LION KING"}]}
+"Price":{"N":1500"},
+"Released":{"SS":["BANGALORE","Hyderabad"]}
+}
+
+
+AWS -- CLI
+1. create an account in aws
+2. Download aws-cli
+3. Generate the access key and secret access key
+4. Configure the aws cli
+	aws configure
+  	Populate the access key and secret access key
+    Region : us-east-1
+    Format : json
+    
+ aws dynamodb create-table \
+    --table-name Music \
+    --attribute-definitions \
+        AttributeName=Artist,AttributeType=S \
+        AttributeName=SongTitle,AttributeType=S \
+    --key-schema AttributeName=Artist,KeyType=HASH AttributeName=SongTitle,KeyType=RANGE \
+    --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
+    --table-class STANDARD
+   
+1. Create a table called as Orders with orderId as primary key and provisioned throughput
+aws dynamodb create-table --table-name Orders --key-schema AttributeName=OrderId,KeyType=HASH --attribute-definitions AttributeName=OrderId,AttributeType=S --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+    
+//Koushik
+C:\Windows\system32>aws dynamodb create-table --table-name Orders_Koushik --key-schema AttributeName=OrderId,KeYType=HASH --attribute-definitions AttributeName=OrderId,AttributeType=S --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+2. Create a table called as Movies with Director as partition key and movie name as sort key 
+aws dynamodb create-table --table-name Movies_anju --key-schema AttributeName=Director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE --attribute-definitions AttributeName=Director,AttributeType=S AttributeName=MovieName,AttributeType=S --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+
+//Alias
+aws dynamodb create-table --table-name Movies_alias4 ^
+--key-schema AttributeName=Director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE ^
+--attribute-definitions AttributeName=Director,AttributeType=S AttributeName=MovieName,AttributeType=S ^
+--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+
+// Altamash
+C:\Users\Admin>aws dynamodb create-table --table-name Movies_Altamash --key-schema AttributeName=Director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE --attribute-definitions AttributeName=Director,AttributeType=S AttributeName=MovieName,AttributeType=S --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+//Udaya
+C:\Users\Admin>aws dynamodb create-table --table-name movies_udaya --key-schema AttributeName=director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE --attribute-definitions AttributeName=director,AttributeType=S AttributeName=MovieName,AttributeType=S  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+// khaleem
+aws dynamodb create-table --table-name Movies_Villans ^
+--key-schema AttributeName=Director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE ^
+--attribute-definitions AttributeName=Director,AttributeType=S AttributeName=MovieName,AttributeType=S ^
+--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+//satya
+aws dynamodb create-table --table-name Movies_satyaj --key-schema AttributeName=Director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE --attribute-definitions AttributeName=Director,AttributeType=S AttributeName=MovieName,AttributeType=S --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+//koushik
+aws dynamodb create-table --table-name Movies_Koushik --key-schema AttributeName=director,KeyType=HASH AttributeName=MovieName,KeyType=RANGE --attribute-definitions AttributeName=director,AttributeType=S AttributeName=MovieName,AttributeType=S  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+
+
+Insert record 
+In putItemOrdersEg1.json:
+{
+    "OrderId": {
+        "S": "O101"
+    },
+    "Amount": {
+        "N": "5678"
+    },
+    "CustomerId": {
+        "S": "C1001"
+    }
+}
+
+aws dynamodb put-item --table-name Orders --item file://putItemOrdersEg1.json
+
+
+//Alias
+(1)
+aws dynamodb put-item --table-name books_alias --item file://books_alias1.json
+file books_alias1.json contents are as follows:
+{
+  "Author": {
+    "S": "Venkatesh Rao"
+  },
+  "BookName": {
+    "S": "You and Destiny"
+  },
+  "Publisher": {
+    "S": "Paul and Co"
+  },
+  "cost": {
+    "N": "101"
+  }
+}
+
+(2)
+aws dynamodb put-item --table-name books_alias --item ^
+"{ ^
+  \"Author\": { ^
+    \"S\": \"Nirmala Kamal\" ^
+  }, ^
+  \"BookName\": { ^
+    \"S\": \"Time in London\" ^
+  }, ^
+  \"Publisher\": { ^
+    \"S\": \"McGraw Hill\" ^
+  }, ^
+  \"cost\": { ^
+    \"N\": \"406\" ^
+  } ^
+}"
+
+put-item
+	-- Insert one record
+
+get-item
+	-- Provide the primary key
+  -- Return records
+In getItemOrdersEg1.json
+{ 
+	"OrderId":{"S":"O101"}
+	}
+aws dynamodb get-item --table-name Orders --key file://getItemOrdersEg1.json
+
+Orders :
+Primary Key : OrderId
+get-item == return a single record or no records(no matching primary key)
+
+Movies:
+Director -- Partition key
+MovieName -- Sort key
+get-item
+1. Can i get more than 1 record -- NO
+2. Can I get more than 1 record belonging to different partition keys -- NO 
+3. Can I get more than 1 record belonging to same partition keys -- NO
+
+In putItemMovieseg1.json
+{
+    "Director":{"S":"Karan Johar"},
+    "MovieName":{"S":"KHKG"},
+    "Actors":{"SS":["Shahrukh","Kajol"]}
+}
+
+aws dynamodb put-item --table-name Movies_anju --item file://putItemMovieseg1.json
+
+In getItemMovieseg1.json
+{
+    "Director":{"S":"Karan Johar"}
+}
+aws dynamodb get-item --table-name Movies_anju --key file://getItemMovieseg1.json
+
+An error occurred (ValidationException) when calling the GetItem operation: The provided key element does not match the schema
+
+
