@@ -1,0 +1,602 @@
+Movies:
+Director -- Partition key
+MovieName -- Sort key
+get-item
+-- Provide the entire primary key
+-- Can always only return either 0 or 1 item(record)
+1. Can i get more than 1 record -- NO
+2. Can I get more than 1 record belonging to different partition keys -- NO 
+3. Can I get more than 1 record belonging to same partition keys -- NO
+
+In putItemMovieseg1.json
+{
+    "Director":{"S":"Karan Johar"},
+    "MovieName":{"S":"KHKG"},
+    "Actors":{"SS":["Shahrukh","Kajol"]}
+}
+
+aws dynamodb put-item --table-name Movies_anju --item file://putItemMovieseg1.json
+
+In getItemMovieseg1.json
+{
+    "Director":{"S":"Karan Johar"}
+}
+aws dynamodb get-item --table-name Movies_anju --key file://getItemMovieseg1.json
+
+An error occurred (ValidationException) when calling the GetItem operation: The provided key element does not match the schema
+
+In getItemMovieseg2.json
+{
+    "Director":{"S":"Karan Johar"},
+     "MovieName":{"S":"KHKG"},
+}
+aws dynamodb get-item --table-name Movies_anju --key file://getItemMovieseg2.json
+select * from movies where director="karan" and movieName ="hh"
+
+// 0 or 1 record
+
+update-item
+delete-item
+scan
+query
+
+Access list,map
+Attribute names placeholder
+Attribute values placeholder
+Conditional expression -- where
+	-- Relational operators
+  -- Logical opeartors
+  -- Between
+  -- Special functions
+Group by
+Order by
+Joins
+Nested queries
+
+
+update-item 
+In employee, there is no employee with empId 999
+	update employee set salary=salary+100 where empId=101;//Updation will be successful
+  update employee set salary=salary+100 where empId=999;// No error; no updation
+  
+In dynamodb:
+update-item
+-- Needs the primary key
+-- Default behaviour -- upsert
+If item exists: updation will be done
+If item does not exists: do a insertion
+
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"101"}
+}
+In exUpValueseg1.json
+{
+	":newSal":{"N":"1000"}
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg1.json ^
+--update-expression "SET salary = :newSal "^
+--return-values ALL_NEW 
+
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg1.json ^
+--update-expression "SET salary = salary + :newSal "^
+--return-values ALL_NEW ;// work only if item with the pk exists else throws an exception
+
+  
+//Alias
+aws dynamodb update-item ^
+--table-name employee_alias ^
+--key file://update_emp01.json ^
+--update-expression "SET salary = salary + :newval" ^
+--expression-attribute-values file://update_attr.json ^
+--return-values ALL_NEW
+
+--update_emp01.json
+{":newval":{"N":"15000"}}
+
+--update_attr.json
+{":newval":{"N":"15000"}}
+
+Example for adding a new column
+
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"101"}
+}
+In exUpValueseg2.json
+{
+	":newDeptId":{"S":"HR"}
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg2.json ^
+--update-expression "SET deptId = :newDeptId "^
+--return-values ALL_NEW 
+
+
+Adding a new list and new map:
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"101"}
+}
+In exUpValueseg3.json
+{
+	":newHobbies":{"L":
+  [
+  	{"S":"Swimming"},
+    {"S":"Cooking"},
+    {"S":"Gardening"}
+  ]
+  },
+  ":newSports" :{"SS":["Cricket","Football"]}
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg3.json ^
+--update-expression "SET hobbies = :newHobbies, FavouriteSports= :newSports "^
+--return-values ALL_NEW 
+
+
+Add items to a list 
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"101"}
+}
+In exUpValueseg4.json
+{
+	":newHobbies":{"S":"Coding"}
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg4.json ^
+--update-expression "SET hobbies[0] = :newHobbies"^
+--return-values ALL_NEW 
+
+
+Append multiple items to the list
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"101"}
+}
+In exUpValueseg5.json
+{
+	":mulItems":{
+  "L":[{"S":Surfing"},{"S":"Baking"}]
+  }
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg5.json ^
+--update-expression "SET hobbies = list_append(hobbies,:mulItems) "^
+--return-values ALL_NEW 
+
+
+Set :
+	Add a new field
+  Inc/Dec the value
+  Add a new list/map
+  Change the items in the list/map
+  
+
+Remove a field from a record
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"103"}
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--update-expression "Remove projectId "^
+--return-values ALL_NEW 
+
+Delete --removing element(s) from a set 
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"103"}
+}
+In exUpValueseg7.json
+{
+":valToDeDeleted" :{"SS":["Cricket"]}
+}
+
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg7.json ^
+--update-expression "Delete FavouriteSports :valToDeDeleted "^
+--return-values ALL_NEW 
+
+
+Remove elements from the list -- Based on position
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"103"}
+}
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--update-expression "Remove  hobbies[2]"
+
+Add a map to an existing record
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"103"}
+}
+In exUpValueseg8.json
+{
+":projectDescription" :
+	{"M":{
+  	"projectId":{"S":"P101"},
+    "projectName":{"S":"AI help"},
+    "clientName":{"S":"Lumen"}
+  }}
+}
+aws dynamodb update-item --table-name employee_anju ^
+--key file://updateItemEmpeg1.json ^
+--expression-attribute-values file://exUpValueseg8.json ^
+--update-expression "SET projectDesc= ":projectDescription" 
+
+
+For employee 101 as a single query
+	-- add a new field called as loc with value="India"
+  -- increment the salary by 4000
+  -- add a projectDetails field which is a String set
+  -- remove the empName field
+  -- add favGames of List type
+  -- add address of map type
+  
+
+In upPKEg2.json
+{
+	"empId":{"N":"101"}
+}
+In exUpValueseg9.json
+{
+	":newLoc":{"S":"India"},
+  ":newsalary":{"N":"4000"},
+  ":newPD":{"SS":["P1","P2"]},
+  ":favGames":{"L":[{"S":"Cricket"},{"S":"table tennis"}]},
+  ":newAddress":{"M":
+  	{
+    	"city":{"S":"Chennai"},
+      "houseNo":{"N":"20"}
+    }
+  }
+}
+
+aws dynamodb update-item ^
+--table-name employee_anju ^
+--key file://upPKEg2.json ^
+--expression-attribute-values file://exUpValueseg9.json ^
+--update-expression "Remove empName Set address=:newAddress, loc=:newLoc, salary=salary +:newsalary, projectDetails=:newPD, favouriteGames=:favGames"
+
+delete-item
+	-- For deleting a single item
+  
+In updateItemEmpeg1.json
+{
+	"empId":{"N":"103"}
+}
+
+ aws dynamodb delete-item ^
+--table-name employee_anju ^
+--key file://updateItemEmpeg1.json 
+ 
+
+Single record/item -- putItem,getItem,updateItem,deleteItem
+
+Multiple records 
+Insertion -- bulk write, batch write
+Updation -- bulk write
+Get multiple records -- scan, query
+
+Dynamodb
+Each item (record) size upto 400kb
+batch processing:
+
+BatchWriteItem : 
+	-- Create/delete upto 25 records in one or more tables
+  -- Write up to 16mb of data 
+  -- No updation possible
+  
+In batchWriteEg1.json
+{
+        "UserOrdersTable": [
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20160630-12928"},
+                        "Amount": {"N": "142.23"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "daffyduck"},
+                        "OrderId": {"S": "20170608-10171"},
+                        "Amount": {"N": "18.95"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "daffyduck"},
+                        "OrderId": {"S": "20170609-25875"},
+                        "Amount": {"N": "116.86"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "daffyduck"},
+                        "OrderId": {"S": "20160630-28176"},
+                        "Amount": {"N": "88.30"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20170609-18618"},
+                        "Amount": {"N": "122.45"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170609-4177"},
+                        "Amount": {"N": "27.89"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170608-24041"},
+                        "Amount": {"N": "142.02"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20170609-17146"},
+                        "Amount": {"N": "114.00"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20170609-9476"},
+                        "Amount": {"N": "19.41"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20160630-13286"},
+                        "Amount": {"N": "146.37"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170609-8718"},
+                        "Amount": {"N": "76.19"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "daffyduck"},
+                        "OrderId": {"S": "20171129-29970"},
+                        "Amount": {"N": "6.98"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170609-10699"},
+                        "Amount": {"N": "122.52"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20160630-25621"},
+                        "Amount": {"N": "141.78"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170330-29929"},
+                        "Amount": {"N": "80.36"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20160630-4350"},
+                        "Amount": {"N": "138.93"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170330-20659"},
+                        "Amount": {"N": "47.79"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170115-20782"},
+                        "Amount": {"N": "80.05"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20170330-18781"},
+                        "Amount": {"N": "98.40"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20170330-1645"},
+                        "Amount": {"N": "25.53"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170115-2268"},
+                        "Amount": {"N": "37.30"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170609-8267"},
+                        "Amount": {"N": "32.13"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20170330-3572"},
+                        "Amount": {"N": "126.17"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "alexdebrie"},
+                        "OrderId": {"S": "20171129-28042"},
+                        "Amount": {"N": "83.12"}
+                    }
+                }
+            },
+            {
+                "PutRequest": {
+                    "Item": {
+                        "Username": {"S": "yosemitesam"},
+                        "OrderId": {"S": "20170609-481"},
+                        "Amount": {"N": "136.68"}
+                    }
+                }
+            }
+        ]
+    }
+  
+aws dynamodb batch-write-item --request-items file://batchWriteEg1.json
+
+  
+UserOrdersTable:
+Primary Key
+ Partition key: Username, Sort : OrderId
+ Partition key : OrderId //Not a good option
+OrderId is unique
+Each partition key will have only one record
+
+query : always based on partition key
+query(OrderId) -- will always return one record
+
+scan -- table scan
+query -- going to that partition
+
+Performance query> scan; Avoids scans
+
+Condition expressions:
+	-- get-item,put-item,update-item,delete-item
+  -- scan and query
+
+Existence and non existence:
+-- Work with put-item
+-- Check if the given primary key already exists
+
+--condition-expression "attribute_not_exists(cost)"
+select * from UserOrdersTable where UserName="alexdebrie" and exists(Amount);
+
+In putItemUserseg1.json
+{
+	"Username":{"S": "alexdebrie1"},
+  "OrderId":{"S": "20160630-12928"},
+  "Amount" : {"N":"45.67"}
+}
+
+ 
+aws dynamodb put-item ^
+--table-name UserOrdersTable ^
+--item file://putItemUserseg1.json ^
+--condition-expression "attribute_not_exists(Id) " 
+
+
+
+
+
+
+
+In ClI
+
+Scan 
+Query
+
+In queryEg1.json
+{
+":checkUserName":{"S":"alexdebrie" }
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username=:checkUserName" ^
+--expression-attribute-values file://queryEg1.json 
+
