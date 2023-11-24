@@ -1,0 +1,398 @@
+Scan and query
+	-- Retreive maximum of 1 mb of data
+  -- Pagination is possible
+  -- Always 1 mb of data is retrived and then the filter expression is applied
+  -- RCU consumption is calculated before the filter is applied
+  -- Count <=ScannedCount
+	
+Scan:
+	-- scan through the entire table
+  -- Costly affair because its a table scan
+  -- On the table scan, the filter condition is applied
+  -- RCU consumption is based on table scan
+  -- RCU consumption is always based on scanned count and not count
+  ** --filterExpression -- Can be based on primary key or non key
+
+Query:
+	-- partition key is mandatory
+  	-- Exact match(Equality)
+  -- Provide optional sort key
+  	-- Restricted operations
+    	-- Relational operators, between and begins with
+  -- Additional filters (ON non primary key)
+  	-- Number of operations, in built functions
+  -- Return record(s) belonging to a single partition key 
+  ** --key-condition-expression flag is used for expressing the conditions for partition key and sort key
+	** Partition key and sort key conditions are always joined using and
+  -- ScannedCount -- Number of records scanned with respect to that partition key
+  -- Count -- Number of records in result set; Number of records which matched the filter condition(s) for the given primary key
+	--filterExpression -- Should be always on non key
+aws dynamodb query ^
+--table-name ^
+--key-condition-expression ^
+
+In queryEg2.json
+{
+":newUsername":{"S":"alexdebrie"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg2.json
+// Will return multiple records belonging to alexdebrie (single partition key) --Count =13, ScannedCount=13
+
+
+Query Equality based partition and sort key -- Will return only 0 or 1 records
+In queryEg3.json
+{
+":newUsername":{"S":"alexdebrie"},
+":newOrderId":{"S":"20160630-25621"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername and OrderId=:newOrderId" ^
+--expression-attribute-values file://queryEg3.json
+// Will return only 1 record belonging to alexdebrie 
+
+
+Query:
+In queryEg4.json
+{
+":newUsername":{"S":"alexdebrie"},
+":startOrderId":{"S":"2017"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername and begins_with(OrderId,:startOrderId)" ^
+--expression-attribute-values file://queryEg4.json
+// Will return multiple record belonging to alexdebrie and OrderId should begin with 2017 -- Count=11, ScannedCount=11
+
+select * from UserOrdersTable where UserName="alexdebrie" and amount >140
+In queryEg5.json
+{
+":newUsername":{"S":"alexdebrie"},
+":checkAmount":{"N":"140"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg5.json ^
+--filter-expression "Amount >:checkAmount"
+
+//Count: 3, Scanned Count:13
+
+select * from UserOrdersTable where UserName="alexdebrie" and amount between 80 and 130
+In queryEg6.json
+{
+":newUsername":{"S":"alexdebrie"},
+":lowerAmount":{"N":"80"},
+":higherAmount":{"N":"130"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg6.json ^
+--filter-expression "Amount between :lowerAmount and :higherAmount"
+//Count: 5 , Scanned Count:13
+
+
+select * from UserOrdersTable where UserName="alexdebrie" and OrderId  begins with 2017 and  amount between 80 and 130
+In queryEg7.json
+{
+":newUsername":{"S":"alexdebrie"},
+":lowerAmount":{"N":"80"},
+":higherAmount":{"N":"130"},
+":newOrderId":{"S":"2017"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername and begins_with(OrderId,:newOrderId)" ^
+--expression-attribute-values file://queryEg7.json ^
+--filter-expression "Amount between :lowerAmount and :higherAmount"
+//Count: 5 , Scanned Count:11
+
+
+select * from UserOrdersTable where UserName="alexdebrie" and amount >130 or amount < 30
+In queryEg8.json
+{
+":newUsername":{"S":"alexdebrie"},
+":lowerAmount":{"N":"30"},
+":higherAmount":{"N":"130"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername " ^
+--expression-attribute-values file://queryEg8.json ^
+--filter-expression "Amount> :higherAmount or Amount <:lowerAmount"
+//Count: 4 , Scanned Count:13
+
+
+select * from UserOrdersTable where UserName="alexdebrie" or amount >100
+-- Not possible using 
+-- Trying to fetch records belonging to differnt partition key
+-- have to perform a scan
+
+In queryEg9.json
+{
+":newUsername":{"S":"alexdebrie"},
+":higherAmount":{"N":"100"}
+}
+
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg9.json ^
+--filter-expression "Username=:newUsername or Amount> :higherAmount"
+// Count:18, ScannedCount:25
+
+
+select * from UserOrdersTable where Username in ("alexdebrie","daffyduck")
+-- Will use scan
+-- Cannot use query
+In queryEg10.json
+{
+":value1":{"S":"alexdebrie"},
+":value2":{"S":"daffyduck"}
+}
+
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg10.json ^
+--filter-expression "Username in (:value1,:value2)"
+// Count:17, ScannedCount:25
+
+Comparison of 2 queries
+In queryEg11.json
+{
+":username":{"S":"alexdebrie"},
+}
+
+Scenario 1:
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg11.json ^
+--filter-expression "Username =:username"
+
+Scenario 2:
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :username" ^
+--expression-attribute-values file://queryEg11.json
+
+1. Are the Result set of the 2 scenarios same -- Yes
+2. Performance wise which scenario is better and why -- Scenario 2 
+Scenario 1: Table scan and filter applied to table scan; Accessing multiple partitions
+Scenario 2: Accessing only a single partition
+ScannedCount of scenario 1 >= ScannedCount of scenario 2
+RCU's consumption of scenario 1 > RCU's consumption of scenario 2
+
+
+--filterexpression
+	** Relational operators
+  **Logical opeartors
+  **Between
+  **In
+  **Number of functions:
+  	begins_with
+    attribute_exists
+    attribute_not_exists
+    contains -- set,list,string
+    size
+    attribute_type
+
+
+In queryEg11.json
+{
+":sportName":{"S":"Cricket"}
+}
+
+aws dynamodb scan ^
+--table-name employee_anju ^
+--expression-attribute-values file://queryEg11.json ^
+--filter-expression "contains("favouriteGames",:sportName)"
+// Count:2, ScannedCount:5
+
+In queryEg12.json
+{
+":value1":{"S":"deb"}
+}
+
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg12.json ^
+--filter-expression "contains(Username ,:value1)"
+// Count:14, ScannedCount:25
+
+
+
+List:["Apple","banana","strawberry","pineapple"]
+Search for elements which have "ap"
+
+In queryEg13.json
+{
+":value1":{"S":"a"}
+}
+
+aws dynamodb scan ^
+--table-name employee_anju ^
+--expression-attribute-values file://queryEg13.json ^
+--filter-expression "contains("favouriteGames[0]",:value1)
+
+Projection:
+	--Flag --projection-expression
+  -- Scan ,query, get_item
+  -- Specify the fields to projected
+  -- Part of the list: specify the particular elements
+  -- Specify the members of list
+  -- No overlapping of attributes allowed
+  -- One attribute path only allowed once 
+In queryEg11.json
+{
+":sportName":{"S":"Cricket"}
+}
+
+aws dynamodb scan ^
+--table-name employee_anju ^
+--expression-attribute-values file://queryEg11.json ^
+--filter-expression "contains("favouriteGames",:sportName)" ^
+--projection-expression "empId,empName,salary,address.city,address.houseNo, favouriteGames[1]"
+// Count:2, ScannedCount:5
+
+Limit 
+-- --limit n where n is a number
+-- Limit the result set to n records
+-- Field called as LastEvaluatedKey will be present when the limit is used
+-- LastEvaluatedKey will be null if there are no more records
+-- If not null LastEvaluatedKey will hold the last primary key which was added to result set. 
+	-- Can get the next set of records as well
+-- Construct a new query with a flag called as ExclusiveStartKey with the value of LastEvaluatedKey 
+ 
+ 
+For the following query: --Count =13, ScannedCount=13
+
+In queryEg2.json
+{
+":newUsername":{"S":"alexdebrie"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg2.json --limit 5
+// Will return multiple records belonging to alexdebrie (single partition key)
+
+
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--exclusive-start-key file://startKeyEg1.json ^
+--expression-attribute-values file://queryEg2.json --limit 5
+
+Pagination : Use limit to limit the number of records
+-- Fetch the number of records based on limit and then do the filtering based on the filter condition
+-- Number of records may vary in each fetch
+There are 25 records totally
+Performing a table scan with no filters and limit 5
+-- limit 5
+-- Can Count > ScannedCount -- No
+-- Can ScannedCount > 5 -- NO
+-- Will ScannedCount =5 -- YES
+-- Can ScannedCount < 5 -- Yes if the number of recors is less than the limit
+-- Count <=5
+
+Are these combination possible
+Scan with limit 5 and filter condition
+Count=3, ScannedCount=5 -- YES when there are only3 matching records in the 5 records which it has fetched
+Count=3, ScannedCount=3 -- YES when there are only 3 records in the table
+Count=5, ScannedCount=5 
+Count=5, ScannedCount=3 -- NO
+
+
+select * from UserOrdersTable where username like "%deb%"
+In queryEg12.json
+{
+":value1":{"S":"deb"}
+}
+
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg12.json ^
+--filter-expression "contains(Username ,:value1)"
+// Count:14, ScannedCount:25
+
+
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg12.json ^
+--filter-expression "contains(Username ,:value1)" --limit 5
+
+aws dynamodb scan ^
+--table-name UserOrdersTable ^
+--expression-attribute-values file://queryEg12.json ^
+--exclusive-start-key file://startKeyEg1.json ^
+--filter-expression "contains(Username ,:value1)" --limit 5
+
+
+// Count:n, ScannedCount:5 where n<=5
+
+
+Pagination and query:
+ -- ScannedCount : <=Value of limit 
+ -- Count : <=ScannedCount
+ -- Each fetch may give different number of records depending upon which match the filter
+ 
+ In queryEg5.json
+{
+":newUsername":{"S":"alexdebrie"},
+":checkAmount":{"N":"140"}
+}
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg5.json ^
+--filter-expression "Amount >:checkAmount"
+
+//Count: 3, Scanned Count:13
+
+With pagination and limit =5
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg5.json ^
+--filter-expression "Amount >:checkAmount" --limit 5
+
+First fetch : Count:2, ScannedCount:5
+Second fetch:
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg5.json ^
+--exclusive-start-key file://startKeyEg1.json ^
+--filter-expression "Amount >:checkAmount" --limit 5
+
+// Count :1, ScannedCount:5
+third fetch
+aws dynamodb query ^
+--table-name UserOrdersTable ^
+--key-condition-expression "Username= :newUsername" ^
+--expression-attribute-values file://queryEg5.json ^
+--exclusive-start-key file://startKeyEg1.json ^
+--filter-expression "Amount >:checkAmount" --limit 5
+// Count: 0, ScannedCount:3, Items:[],lastEvaluatedKey is not present 
+ 
+TTL :
+-- total time to live
+-- For a table based on a particular attribute, the records gets deleted automatically when the attribute's timestamp is greater than the current time
+-- Enable the ttl -- docs get deleted implicitly
+-- Attribute on which ttl is enabled should be of number data type
+
+table -- session data
+table -- log data 
+
+backup and restore
+
+Epoch time -- 1st jan 1970 12:00 am
+timestamp in UNIX epoch timeformat
+
+1 jan 2023 -- Express it as a number -- number of milliseconds since 1st jan 1970 
+
+
+
