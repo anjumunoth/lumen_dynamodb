@@ -1,0 +1,211 @@
+TTL
+	
+	-- Items get deleted implicitly
+  -- ttl attribute -- number data type -- number of seconds elasped sinced 1st jan 1970-- epoch date
+  -- NO WCU's will be consumed whenever is item is deleted implicitly 
+  -- How does ttl work
+  	--1. Enable the ttl
+    --2. Background process per partition check for the expired items and mark the expired items for deletion
+    --3. Another background process which will delete the items
+    --4. dateOfExpiration : 27-11-2023 6: 00 am; There may be some delay and some items may stay beyond the expiration date
+    --5. Read for the item(marked for deletion) -- chance for reading it
+    -- Update/modify the ttl attribute or any other attriute of an expired item -- YES
+    -- Streams -- A record deleted by ttl will appear as a system delete 
+		-- Once a ttl is enabled, can the ttl attribute be changed -- NO
+    -- To change the ttl attribute -- disable the ttl and enable the ttl again with the new ttl attribute
+    -- Role to delete the ttl atrribute
+
+Items: ttl attribute : doE
+101, doE: 1-jan-2023
+102, doE:1-jan-2024
+103, doE: 27-11-2023, 9:30 am
+104, doE : 1-jan-1997
+
+
+At 9:31 am and 103 is marked for deletion
+update the empId to 999; -- YES
+update the doE to 1-1-2025 ;;-- YES
+
+28th nov 2023:1701124208; 777
+28st jan 2023: 1674858608; 778
+TTL enabling -- 1 hour;
+Background process: any item which has to be marked for deletion: 778
+
+
+backup and restore:
+	-- IAM role to do the backup and restore
+  -- 2 ways
+  	-- AWS backup tool
+    -- Dynamodb backup option
+  
+RDBMS backup:
+	Incremental -- Every day
+  Full -- Every week
+  Archieve logs
+  why backup
+  	-- accidental deletes
+    -- Data restoration during natural disaster
+    -- Loss of data because of network issues or power
+  What all should be backed up : database(actual data-- tables,indexes) + control file(metadata)+ transactional logs
+  Logical(import and export) -- data, metadata of index
+  Physical -- data, index, metadata
+  Where all can the  backup stored :
+  	-- local storage
+    -- shared locations --file systems 
+    -- S3 buckets -- restore data across regions, cloud -- restore on local/cloud, high availability of backup
+  Backup
+  	-- Of entire server, entire database,only a table in a particular db, some records in a table
+  Restore
+  	-- Restore from a particular backup
+    -- Full restore
+    -- Point in time recovery -- PITR -- recover the data to a particular point in time -- data corruption
+    	-- PITR from a full backup, incremental backup
+      -- Based on backup availability
+      -- Cost associated 
+ 
+--Back up from dynamodb
+  	-- Back up of a single table in a particular region
+    -- Backup is stored in the same region
+    -- What all is backed up
+    	-- data
+      -- schema(Primary key(partition key and sort key with their respective data types) )
+      -- indexes (LSI, GSI, structure)
+      
+    -- On demand backup 
+    --Schedule backup
+    -- Incremental backup -- BY using PITR
+    -- For a full backup
+    	-- Source table name and backup name
+    -- Multiple backups of the same table can be taken
+    -- Backups usually completes within seconds even for huge volumes of data
+    
+Restore
+	-- Restore the backup to a new table
+	-- Restore to a same region or a different region
+  -- Restore the entire data alone
+  -- Restore the data and indexes(all indexes or none) 
+  -- Restore to a different region
+  	-- higher redundancy
+    -- higher availability
+    -- cost for data transfer
+  	-- Time taking process 
+    -- In the restored table the following are the same as the source table
+    	-- Primary key (partition key and sort key and their data types)
+  		-- If indexes are also restored , the gsi and lsi will be the same
+      -- Capacity mode will be same as source table
+      -- Table class
+      -- If ttl exists
+    During the restoration, the following can be modified
+    	-- Whether indexes have to be restored
+      -- Region where table has to be created(same or different from source table region)
+      -- Encryption 
+      
+  
+  PITR
+  Enabling the PITR
+  	-- Initially a full base backup will be taken
+  	-- incremental/continuous  backup automatically at regular intervals
+    -- Restoring
+    	-- Always will be restored to a new table
+      -- Restore from the latest(last restore)
+      -- Restore at a particular point in second in the time period for which the back up is avialble
+      -- Backups are mainitained/rotated every 35 days
+
+1. Will deleting the table, delete the backups as well -- NO 
+2. Will deleting the backups, delete the table as well  -- NO
+3. can i restore from a deleted table's backup -- YES
+ARN: arn:aws:dynamodb:us-east-1:312281614426:table/employee_anju/backup/01701059619918-cd97d91d
+backup_employee_anju_27_nov_2023_10am	
+
+For restoring:
+aws dynamodb restore-table-from-backup --target-table-name employee_anju_backup --backup-arn arn:aws:dynamodb:us-east-1:312281614426:table/employee_anju/backup/01701059619918-cd97d91d
+      
+To list pitr backups
+aws dynamodb describe-continuous-backups --table-name UserOrdersTable
+
+
+aws dynamodb restore-table-to-point-in-time \
+    --source-table-name UserOrdersTable \
+    --target-table-name MusicMinutesAgo \
+    --use-latest-restorable-time
+    
+    
+Global tables:
+	-- Replicas can be created only when
+  	-- Capacity mode can be on demoand or provisioned with auto scaling ON
+	-- multi regions, fully managed by aws
+	-- 2 versions of global tables
+  	-- 2019 or current version
+    -- 2017 or legacy version
+	-- Same table is available(replicated ) across multiple AWS regions
+  -- Same data is stored in multiple regions
+  -- Active - active replication
+  -- Write operations on any of the replica tables ; and then the writes are propogated to other replicas within 1 second
+  -- Propagation of data to other replicas -- Done internally by aws
+  -- Eventual consistency
+  -- Probability of reading stale data -- yes
+  
+  -- Conflicts resolution:
+  	-- last write wins 
+  -- Strong consistency within same region --- yes
+  -- Strong consistency across regions -- NO
+  -- Costlier process 
+  -- More redundancy
+  -- Useful for a distributed applications -- Access the data from a nearer region -- Low latency -- Faster reads/ write
+  -- Higher availability
+  -- faster reads and more number of reads/per sec
+  	Table -- 1 region
+    Table -- 5 regions
+    	-- Read data from 5 places -- YES
+      -- More number of reads from global tables in same timeperiod when compared to a single period -- YES
+  -- Indexes in one region are replicated to the other regions as well
+  -- faster writes and more number of writes/per sec
+  		-- Table in single region -- writes will go single table
+      -- Table in multiple regions -- Levarage the writes across the multiple replica tables
+  -- Replica table
+  -- TTL
+  	-- Item is deleted on the table because of ttl rule, the delete will be propogated to replicas as well
+    --Deletion of items in replica target tables-- incur replicated WCU
+  -- Disadvanatges
+  	-- Cost
+    -- Consistency : Eventual consistency
+    
+  -- ReplicationLatency 
+  	-- elapsed item betwenn when an item in written in a replica table and when that item appears in another replica 
+    -- Measured in milliseconds
+    -- Emitted every source-region and destination
+    -- Latency .5 to 1.5 seconds
+	-- Global table
+  	-- same data stored in different regions
+    	-- Table name will be same
+      -- Data will be same
+      -- Number/Type of indexes will be same
+      -- Capacity, table class will be same
+      -- ttl
+      -- Encryyption
+      -- Primary key should be same 
+      -- Backup's are not replicated to other regions
+      
+  -- Delete a replica table 
+  	--Stop the replication to that region
+    -- Removing the member from the replica set
+    -- Delete the table copy in this region alone
+    
+    
+Conflicts Resolution :
+	Default -- last write wins
+  DBA -- Avoid conflicts:
+  			-- Allowing writes only in 1 regions
+        -- Route the user traffic different regions based on origination of query
+        -- Avoid set salary=salary+100; Idempotent queries
+
+For 10000 people -- 100 desks
+For 20000 people -- 200 desks
+More desks -- more read operations in the same time
+
+
+  
+  
+  
+  
+  
