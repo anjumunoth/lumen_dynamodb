@@ -1,0 +1,33 @@
+Export and Import
+Can the primary key data type be different in the export and import -- No
+Can the  primary key itself be different in the export and import -- Yes. 
+Will the import be successful if there are duplicate values for Primary key in the export ARN bucket -- YES
+Imported item count may display all the items which have got imported but the items with duplicate Primary key values will be removed and the last write wins
+
+Streams:
+	--Capture item-level changes in your table, and push the changes to a DynamoDB stream. 
+  --You then can access the change information through the DynamoDB Streams API.
+	-- Kinesis streams and Dynamodb streams
+	-- data modifications made to the table will be added to the stream as a record
+  -- Record will be available for 24 hours
+  -- From api, can access the stream records
+  -- Enable stream
+  	-- What all to add to stream record
+    	-- New image
+      -- New and old image
+      -- Old image
+      -- Key attributes 
+  -- Stream record
+  	-- Timestamp of operation
+    -- what kind of modification
+    -- images of record
+  -- Stream can be disabled
+  	-- Stream records will be deleted
+    	-- Only after 24 hours from the record creation have elapsed
+Triggers
+	-- Add a AWS lambda function to work with this trigger
+  -- As part of function, will do the necessary task
+  	-- Access the streams and work with them
+			-- Add some filters to function so that only the filtered stream records are processed
+    
+      
