@@ -1,0 +1,166 @@
+Global Tables
+	-- Data changes are propogated  to the replicas
+  -- Index creation/modifications are also propogated to the replicas
+	-- In a table if the PITR is enabled, is it propogated to other replicas -- NO
+  -- Backups are not replicated to other regions
+  -- capacity modes modification, table class modifications are all propogated to replicas
+  -- IS TTL enabling replicated to other replicas -- NO 
+  -- Because ttl attribute, some records are deleted in a table. Are these system deletions propogated to other replicas -- YES
+
+Back up and restore
+	-- Where is the backup stored
+  	-- In the same region as a seperate AWS resource
+  -- What is the type/format of backed up data
+  	-- csv or json or what ? -- NOt known
+    -- Abstracted from the user
+    -- User cannot select
+  -- Full/Incremental backup
+  -- Full restore of data, indexes(skipped)
+  -- No RCU's are consumed
+  -- Will not affect the normal opeartions of table
+  
+Import And export of data
+	-- Export data
+  	-- Export table data in a particular region to s3 bucket in same or different region
+  	-- Only if PITR is enabled for the table, it can be exported
+    --export all the data in a table to an S3 bucket. 
+    --bucket can be in any AWS Region and owned by any account with write permissions
+  	-- csv or json or ION format
+    -- Store it in a s3 bucket
+    -- What all is exported
+    	-- Full Export
+      	-- Export of entire data 
+        -- Export the entire data of current time
+        OR
+        -- Export the entire data at a particular point of time (PITR enabled ;anytime in the last 35 days)
+      -- Incremental export
+      	--Export any table data that's changed within a specific time period.
+        
+        -- Mode
+        	--Relative mode
+          -- Absolute mode
+        -- Export view type:
+        	-- Old and new image
+          -- new image 
+        -- Seperate files will be created for the unique partition key values
+        -- They will be in data folder outside the export 
+    	-- Only data 
+    -- Format of data to be exported:
+    	-- json or Amazon ION
+    -- Encryption at rest
+    -- Encryption at transit
+    -- data is compressed and stored in bucket in specified format (json or ion)
+    
+In the s3 bucket as part of export:
+	-- awsdynamodb folder
+  		-- folder with a arn number
+      	-- _started
+        -- manifest.files.json -- item count in each file in the data folder; each file in data folder corresponds to a particular partition
+        -- manifest.summary.json -- overview/metadata about the export (table name, table arn, export arn , export start and end time, number of items exported, number of billing bytes)
+        -- data folder -- hold the encrypted, compressed partitioned data in seperate files
+    
+Use cases
+Incremental export:
+	-- latest modified data 
+  -- For a particular duration -- data modifications
+  -- Frequently modified data
+  -- Specify the duration
+  -- New and old images
+  -- Individual files for each primary key
+  
+Full export :
+	-- Full data exporting feature
+  -- Move data from testing to production or vice versa
+  -- 
+
+Following modifications are made for empId: 101
+Initially 
+	empName:jack
+At 10:30 am
+	empName:sara
+At 11:00 am
+	empName:tara
+  
+Incremental export of data from 9:30am to 11:30 am with new and old images
+In the file for empId :101:
+new image: {empName:{"S":"tara"}}
+old image:  {empName:{"S":"jack"}}
+
+
+Import from s3 bucket:
+	-- Importing the data in s3 bucket to dynamodb new table
+  -- Cross region imports allowed -- YES
+  -- Redundancy in primary key data in bucket -- only that item import fails
+  
+Encryption in dynamodb:
+	-- Securing the data
+  -- Converting to a non readable format
+  -- Algorithm and KEY 
+  -- Encryption at rest( during storage)
+  	-- client side encryption -- data in encrypted at the api side itself
+    -- server side encryption -- encrpytion done by aws key
+  -- Encryption at transit (encrypting data during transfer)
+	-- Default -- encrypted
+  -- Unencrypted data -- NO
+  -- KEY:
+  	3 different ways
+    	-- Owned and managed by aws -- default
+      -- Managed by aws but owned by us
+      -- OWned and managed by us
+    -- Specify during table creation or  can be modified after the table creation
+  
+  
+Owned and managed by aws
+	-- No extra cost
+  -- AWS will have a set of keys which will be used for multiple aws accounts
+  -- aws will use one of the keys for encrypting the data
+  -- Not going to be account specific; shared
+  -- managed by aws ; Rotated every year by aws impliciltly
+  -- User Will not be able to see/modify the key 
+  -- No auditing required from user side
+  -- No change in api also required
+  -- Disadv: Shared, no control
+
+AWS managed keys:
+	-- Specific key created for the user account and used for that user account only
+  -- Will have some cost 
+  -- Security is better the first option
+  -- Can be Viewed as part of account details and auditing allowed
+  
+Customer owned and managed keys:
+	-- KMS keys owned and managed by the customer
+  -- can be created, deleted, modifed, new policies can be added
+  -- Most secured
+  -- Customer can rotate the key based on business requirements
+  -- Delete some key -- make the table inaccessible
+  
+Encryption in transit
+	-- https protocol
+  -- ssl/tls for encryption over the network
+  
+Monitor the database:
+	-- Availability ; RCU and WCU
+  -- Memory -- Implicily managed by aws
+  -- Backup status -- Check the status 
+  -- Data loss -- Very rare -- Within the same region, data is going to be duplicated across multiple availability zones
+  -- Sessions -- Monitor
+  -- Number of connections -- Monitored
+  -- Reads 
+  -- Writes
+  -- Throttling of requests
+  -- CPU usage -- Serverless architecture
+  -- Storage -- 
+  -- TTL items deleted
+  -- data changes -- Using streams
+  -- billing costs
+  -- DDL changes -- 
+  -- Alerts
+  -- Triggers
+  -- Lambda functions
+  
+  
+Provisoned 10 wcu
+-- Only 10 write operations of average item size of 1kb
+-- Incoming traffic : 1000 write operations per second
+-- Other opeartions will be throttled
+-- write operations will fail 
